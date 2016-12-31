@@ -16,6 +16,12 @@ use fluent::syntax::runtime::parser::parse;
 use fluent_json::*;
 use fluent_json::serialize_json;
 
+#[derive(Debug)]
+enum CliError {
+    Deserialize(serde_json::Error),
+    Parse(fluent::syntax::runtime::parser::ParserError),
+}
+
 fn read_file(path: &str) -> Result<String, io::Error> {
     let mut f = try!(File::open(path));
     let mut s = String::new();
@@ -60,8 +66,11 @@ fn main() {
     };
 
     let source = read_file(&input).expect("Read file failed");
-
-    let res = parse(&source);
+    let res: Result<Resource, CliError> = if input.contains(".json") {
+        serde_json::from_str(&source).map_err(|err| CliError::Deserialize(err))
+    } else {
+        parse(&source).map(|res| Resource::from(res)).map_err(|err| CliError::Parse(err))
+    };
 
     if matches.opt_present("s") {
         return;
@@ -70,9 +79,9 @@ fn main() {
     match res {
         Ok(res) => {
             if matches.opt_present("r") {
-                print_resource(&Resource::from(res));
+                print_resource(&res);
             } else {
-                print_json_resource(&Resource::from(res));
+                print_json_resource(&res);
             }
         }
         Err(err) => println!("Error: {:?}", err),
