@@ -7,7 +7,7 @@ extern crate serde_json;
 extern crate serde_derive;
 extern crate fluent;
 
-use fluent::syntax::runtime::ast;
+use fluent::syntax::ast;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Resource(pub Vec<Entry>);

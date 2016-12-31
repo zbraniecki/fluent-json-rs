@@ -11,7 +11,7 @@ use std::env;
 
 use getopts::Options;
 
-use fluent::syntax::runtime::parser::parse;
+use fluent::syntax::parser::parse;
 
 use fluent_json::*;
 use fluent_json::serialize_json;
@@ -19,7 +19,7 @@ use fluent_json::serialize_json;
 #[derive(Debug)]
 enum CliError {
     Deserialize(serde_json::Error),
-    Parse(fluent::syntax::runtime::parser::ParserError),
+    Parse(fluent::syntax::parser::ParserError),
 }
 
 fn read_file(path: &str) -> Result<String, io::Error> {
