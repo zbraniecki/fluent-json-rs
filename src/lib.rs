@@ -10,21 +10,21 @@ extern crate fluent;
 use fluent::syntax::ast;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct Resource(pub Vec<Entry>);
-
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub enum Entry {
-    Message(Message),
+pub struct Resource {
+    pub body: Vec<Entry>,
+    pub comment: Option<Comment>,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct Identifier(pub String);
-
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct Message {
-    pub id: String,
-    pub value: Option<Pattern>,
-    pub traits: Option<Vec<Member>>,
+#[serde(tag = "type")]
+pub enum Entry {
+    Message {
+        id: Identifier,
+        value: Option<Pattern>,
+        // attributes: Option<Vec<Attribute>>,
+        // tags: Option<Vec<Tag>>,
+        // comment: Option<Comment>,
+    },
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -39,22 +39,29 @@ pub enum PatternElement {
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct Member {
-    pub key: String,
-    pub value: Pattern,
-    pub default: bool,
-}
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub enum Expression {
-    MessageReference(Identifier),
+    MessageReference { id: String },
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct Identifier {
+    pub name: String,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct Comment {
+    pub content: String,
 }
 
 impl From<ast::Resource> for Resource {
     fn from(r: ast::Resource) -> Resource {
-        Resource(r.body
-                     .into_iter()
-                     .map(|e| Entry::from(e))
-                     .collect::<Vec<_>>())
+        Resource {
+            body: r.body
+                .into_iter()
+                .map(|e| Entry::from(e))
+                .collect::<Vec<_>>(),
+            comment: None,
+        }
     }
 }
 
@@ -62,11 +69,10 @@ impl From<ast::Entry> for Entry {
     fn from(e: ast::Entry) -> Entry {
         match e {
             ast::Entry::Message { id, value, .. } => {
-                Entry::Message(Message {
-                                   id: id.name,
-                                   value: Some(Pattern::from(value.unwrap())),
-                                   traits: None,
-                               })
+                Entry::Message {
+                    id: Identifier::from(id),
+                    value: Some(Pattern::from(value.unwrap())),
+                }
             }
             _ => unimplemented!(),
         }
@@ -75,7 +81,7 @@ impl From<ast::Entry> for Entry {
 
 impl From<ast::Identifier> for Identifier {
     fn from(i: ast::Identifier) -> Identifier {
-        Identifier(String::from("key2"))
+        Identifier { name: i.name }
     }
 }
 
@@ -102,9 +108,7 @@ impl From<ast::PatternElement> for PatternElement {
 impl From<ast::Expression> for Expression {
     fn from(e: ast::Expression) -> Expression {
         match e {
-            ast::Expression::MessageReference { id } => {
-                Expression::MessageReference(Identifier(id))
-            }
+            ast::Expression::MessageReference { id } => Expression::MessageReference { id: id },
             _ => {
                 unimplemented!();
             }
