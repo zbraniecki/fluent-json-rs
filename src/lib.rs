@@ -34,8 +34,8 @@ pub struct Pattern {
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub enum PatternElement {
-    Text(String),
-    Placeable(Vec<Expression>),
+    TextElement(String),
+    Expression(Expression),
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -46,28 +46,29 @@ pub struct Member {
 }
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub enum Expression {
-    EntityReference(Identifier),
+    MessageReference(Identifier),
 }
 
 impl From<ast::Resource> for Resource {
     fn from(r: ast::Resource) -> Resource {
-        Resource(r.0
-            .into_iter()
-            .map(|e| Entry::from(e))
-            .collect::<Vec<_>>())
+        Resource(r.body
+                     .into_iter()
+                     .map(|e| Entry::from(e))
+                     .collect::<Vec<_>>())
     }
 }
 
 impl From<ast::Entry> for Entry {
     fn from(e: ast::Entry) -> Entry {
         match e {
-            ast::Entry::Message(m) => {
+            ast::Entry::Message { id, value, .. } => {
                 Entry::Message(Message {
-                    id: m.id,
-                    value: Some(Pattern::from(m.value.unwrap())),
-                    traits: None,
-                })
+                                   id: id.name,
+                                   value: Some(Pattern::from(value.unwrap())),
+                                   traits: None,
+                               })
             }
+            _ => unimplemented!(),
         }
     }
 }
@@ -92,12 +93,8 @@ impl From<ast::Pattern> for Pattern {
 impl From<ast::PatternElement> for PatternElement {
     fn from(e: ast::PatternElement) -> PatternElement {
         match e {
-            ast::PatternElement::Text(t) => PatternElement::Text(t),
-            ast::PatternElement::Placeable(p) => {
-                PatternElement::Placeable(p.into_iter()
-                    .map(|e| Expression::from(e))
-                    .collect::<Vec<_>>())
-            }
+            ast::PatternElement::TextElement(t) => PatternElement::TextElement(t),
+            ast::PatternElement::Expression(p) => PatternElement::Expression(Expression::from(p)),
         }
     }
 }
@@ -105,8 +102,11 @@ impl From<ast::PatternElement> for PatternElement {
 impl From<ast::Expression> for Expression {
     fn from(e: ast::Expression) -> Expression {
         match e {
-            ast::Expression::EntityReference(er) => {
-                Expression::EntityReference(Identifier::from(er))
+            ast::Expression::MessageReference { id } => {
+                Expression::MessageReference(Identifier(id))
+            }
+            _ => {
+                unimplemented!();
             }
         }
     }

@@ -19,7 +19,7 @@ use fluent_json::serialize_json;
 #[derive(Debug)]
 enum CliError {
     Deserialize(serde_json::Error),
-    Parse(fluent::syntax::parser::ParserError),
+    Parse(Vec<fluent::syntax::parser::ParserError>),
 }
 
 fn read_file(path: &str) -> Result<String, io::Error> {
@@ -69,7 +69,9 @@ fn main() {
     let res: Result<Resource, CliError> = if input.contains(".json") {
         serde_json::from_str(&source).map_err(|err| CliError::Deserialize(err))
     } else {
-        parse(&source).map(|res| Resource::from(res)).map_err(|err| CliError::Parse(err))
+        parse(&source)
+            .map(|res| Resource::from(res))
+            .map_err(|(_, err)| CliError::Parse(err))
     };
 
     if matches.opt_present("s") {
