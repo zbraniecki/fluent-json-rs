@@ -25,6 +25,11 @@ pub enum Entry {
         // tags: Option<Vec<Tag>>,
         // comment: Option<Comment>,
     },
+    Section {
+        name: Symbol,
+        comment: Option<Comment>,
+    },
+    Comment(Comment),
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -34,17 +39,22 @@ pub struct Pattern {
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub enum PatternElement {
-    TextElement(String),
+    TextElement { value: String },
     Expression(Expression),
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub enum Expression {
-    MessageReference { id: String },
+    MessageReference { id: Identifier },
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Identifier {
+    pub name: String,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct Symbol {
     pub name: String,
 }
 
@@ -60,7 +70,7 @@ impl From<ast::Resource> for Resource {
                 .into_iter()
                 .map(|e| Entry::from(e))
                 .collect::<Vec<_>>(),
-            comment: None,
+            comment: r.comment.map(|c| Comment::from(c)),
         }
     }
 }
@@ -74,6 +84,13 @@ impl From<ast::Entry> for Entry {
                     value: Some(Pattern::from(value.unwrap())),
                 }
             }
+            ast::Entry::Section { name, comment } => {
+                Entry::Section {
+                    name: Symbol::from(name),
+                    comment: comment.map(|c| Comment::from(c)),
+                }
+            }
+            ast::Entry::Comment(c) => Entry::Comment(Comment::from(c)),
             _ => unimplemented!(),
         }
     }
@@ -99,7 +116,7 @@ impl From<ast::Pattern> for Pattern {
 impl From<ast::PatternElement> for PatternElement {
     fn from(e: ast::PatternElement) -> PatternElement {
         match e {
-            ast::PatternElement::TextElement(t) => PatternElement::TextElement(t),
+            ast::PatternElement::TextElement(t) => PatternElement::TextElement { value: t },
             ast::PatternElement::Expression(p) => PatternElement::Expression(Expression::from(p)),
         }
     }
@@ -108,11 +125,24 @@ impl From<ast::PatternElement> for PatternElement {
 impl From<ast::Expression> for Expression {
     fn from(e: ast::Expression) -> Expression {
         match e {
-            ast::Expression::MessageReference { id } => Expression::MessageReference { id: id },
+            ast::Expression::MessageReference { id } => {
+                Expression::MessageReference { id: Identifier::from(id) }
+            }
             _ => {
                 unimplemented!();
             }
         }
+    }
+}
+
+impl From<ast::Symbol> for Symbol {
+    fn from(s: ast::Symbol) -> Symbol {
+        return Symbol { name: s.name };
+    }
+}
+impl From<ast::Comment> for Comment {
+    fn from(c: ast::Comment) -> Comment {
+        return Comment { content: c.content };
     }
 }
 
